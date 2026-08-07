@@ -1,0 +1,297 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { ArrowUp, Square, ArrowDown, AlertTriangle } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { AppCheckpoint, GraphNode } from "@/lib/langGraph/types";
+import {
+  AgentState,
+  InterruptValue,
+  ResumeValue,
+} from "@/components/ai/AgentTypes";
+import { ChatbotNode } from "@/components/ai/ChatbotNode";
+import ApprovalCard from "@/components/ai/ApprovalCard";
+import { ResearchAgentNode } from "@/components/ai/ResearchAgentNode";
+import { DocumentStatusCard } from "@/components/ai/DocumentStatusCard";
+import { ReportResultCard } from "@/components/ai/ReportResultCard";
+import { useLangGraphAgent } from "@/lib/langGraph/useLangGraphAgent";
+
+const RESEARCH_EXAMPLES = [
+  "Research the impact of AI on the current job market 2026",
+  "Latest breakthroughs in AI , create a doc for it.",
+  "Create a doc with proper citations for MCP servers",
+  "Report on the commercial space flight competition (SpaceX vs Blue Origin)",
+];
+
+export default function ResearchChatPage() {
+  const params = useParams<{ id: string }>();
+  const [threadId] = useState(params.id);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const [inputValue, setInputValue] = useState("");
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  const [restoreError, setRestoreError] = useState(false);
+
+  const { status, appCheckpoints, run, resume, restore, stop, restoring } =
+    useLangGraphAgent<AgentState, InterruptValue, ResumeValue>();
+
+  useEffect(() => {
+    if (threadId) {
+      restore(threadId).catch(() => setRestoreError(true));
+    }
+  }, [threadId]);
+
+  useEffect(() => {
+    if (status !== "running" && !restoring) {
+      inputRef.current?.focus();
+    }
+  }, [status, restoring]);
+
+  useEffect(() => {
+    if (shouldAutoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [appCheckpoints, shouldAutoScroll]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = () => {
+      const isAtBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      setShowScrollButton(!isAtBottom);
+      setShouldAutoScroll(isAtBottom);
+    };
+    el.addEventListener("scroll", handler);
+    return () => el.removeEventListener("scroll", handler);
+  }, []);
+
+  const sendMessage = (content: string) => {
+    if (!content.trim() || status === "running" || restoring) return;
+    setRestoreError(false);
+    run({
+      thread_id: threadId,
+      state: { messages: [{ type: "user", content }] },
+    });
+    setInputValue("");
+  };
+
+  const handleResume = (resumeValue: ResumeValue) => {
+    resume({ thread_id: threadId, resume: resumeValue });
+  };
+
+  const renderNode = (
+    checkpoint: AppCheckpoint<AgentState, InterruptValue>,
+    node: GraphNode<AgentState>,
+  ): React.ReactNode => {
+    switch (node.name) {
+      case "__start__":
+      case "supervisor":
+        return <ChatbotNode nodeState={node.state} />;
+      case "researcher_a":
+      case "researcher_b":
+        if (!node.state.active_statuses) return null;
+        return (
+          <div className="space-y-1">
+            {Object.entries(node.state.active_statuses).map(
+              ([agentId, data]) => (
+                <ResearchAgentNode
+                  key={agentId}
+                  agentId={agentId}
+                  statusData={data}
+                />
+              ),
+            )}
+          </div>
+        );
+      case "hitl_document":
+        // 1. Persist the card
+        const isActuallyDone = !!checkpoint.state.final_report;
+        const interrupt = checkpoint.interruptValue;
+        const hitlData = interrupt || (checkpoint.state as any).hitl_data;
+        const report = checkpoint.state.final_report;
+        const filename =
+          (checkpoint.state as any).filename ||
+          hitlData?.filename ||
+          "research_report";
+
+        // 2. Check for active statuses (Rendering, Citations)
+        const activeStatuses = node.state.active_statuses || {};
+
+        // 3. Check for a final response message from this node
+        const hasMessages =
+          !!node.state.messages && node.state.messages.length > 0;
+
+        return (
+          <div className="space-y-2">
+            {/* Show any ongoing or completed document statuses */}
+            {Object.entries(activeStatuses).map(([agentId, data]) => (
+              <DocumentStatusCard key={agentId} statusData={data as any} />
+            ))}
+
+            {/* Approval protocol card */}
+            {hitlData && (
+              <ApprovalCard
+                interruptValue={hitlData}
+                isCompleted={isActuallyDone}
+                onResume={handleResume}
+              />
+            )}
+
+            {/* If done, show the proper Doc preview */}
+            {isActuallyDone && report && (
+              <ReportResultCard report={report} filename={filename} />
+            )}
+
+            {/* Fallback to simple messages if any */}
+            {hasMessages && <ChatbotNode nodeState={node.state} />}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  const isDisabled = status === "running" || restoring;
+
+  return (
+    <div className="flex flex-col h-screen bg-neutral-900 text-neutral-100 font-mono">
+      {/* Header */}
+      <header className="px-4 py-4 border-b border-neutral-800 flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold tracking-tight ">
+            ROX - MAS <span>(Research system)</span>
+          </h1>
+          {status === "running" ? (
+            <span className="text-primary">
+              <Spinner className="w-4 h-4" />{" "}
+            </span>
+          ) : (
+            <span className="text-primary">Active</span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Button size="sm">Star on Github</Button>
+          <Button size="sm">How it works</Button>
+        </div>
+      </header>
+
+      {/* Messages */}
+      <div ref={containerRef} className="flex-1 overflow-y-auto p-4">
+        <div className="max-w-4xl mx-auto">
+          {appCheckpoints.map((checkpoint, cpIndex) =>
+            checkpoint.error ? (
+              <div
+                key={checkpoint.checkpointConfig.configurable.checkpoint_id}
+                className="text-red-500 py-2 border-b border-red-900/30"
+              >
+                [SYSTEM ERROR]
+              </div>
+            ) : (
+              checkpoint.nodes.map((node, i) => {
+                const prevCheckpoint =
+                  cpIndex > 0 ? appCheckpoints[cpIndex - 1] : null;
+
+                const userMessages =
+                  checkpoint.state.messages?.filter((m) => {
+                    const isUser = m.type === "human" || m.type === "user";
+                    if (!isUser) return false;
+                    if (!prevCheckpoint) return true;
+                    return !prevCheckpoint.state.messages.some(
+                      (pm) => pm.id === m.id,
+                    );
+                  }) || [];
+
+                return (
+                  <div
+                    key={`${checkpoint.checkpointConfig.configurable.checkpoint_id}-${i}`}
+                  >
+                    {i === 0 &&
+                      userMessages?.map((m, idx) => (
+                        <ChatbotNode
+                          key={`user-${idx}`}
+                          nodeState={{ messages: [m] }}
+                        />
+                      ))}
+                    {renderNode(checkpoint, node)}
+                  </div>
+                );
+              })
+            ),
+          )}
+
+          {(status === "running" || restoring) && (
+            <div className="flex gap-2 items-center py-4 text-neutral-500">
+              <Spinner className="w-3 h-3" />
+              <span className="text-[10px] uppercase tracking-tighter">
+                AI is thinking...
+              </span>
+            </div>
+          )}
+
+          {status === "error" && (
+            <div className="text-red-500 py-2">[CONNECTION ERROR]</div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      {/* Input */}
+      <div className="p-4 border-t border-neutral-800">
+        <div className="max-w-4xl mx-auto flex gap-2 items-start">
+          <Textarea
+            ref={inputRef}
+            className="flex-1 bg-neutral-800 border border-neutral-950 p-2 h-14 focus:outline-none rounded-md"
+            placeholder="Input research parameters..."
+            value={inputValue}
+            disabled={isDisabled}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(inputValue);
+              }
+            }}
+          />
+          {status === "running" ? (
+            <Button
+              variant="destructive"
+              size="icon"
+              onClick={() => stop(threadId)}
+            >
+              <Square className="w-4 h-4" />
+            </Button>
+          ) : (
+            <Button
+              variant="default"
+              className="border border-neutral-800 rounded-sm"
+              disabled={!inputValue.trim() || restoring}
+              onClick={() => sendMessage(inputValue)}
+            >
+              <ArrowUp className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {showScrollButton && (
+        <Button
+          className="fixed bottom-24 right-8 rounded-none border border-neutral-800 bg-background"
+          size="icon"
+          onClick={() =>
+            messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+          }
+        >
+          <ArrowDown className="w-4 h-4" />
+        </Button>
+      )}
+    </div>
+  );
+}
