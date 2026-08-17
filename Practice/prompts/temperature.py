@@ -1,1 +1,12 @@
-# temperate can differe the LLM output a lot
+# temperature can differ the LLM output a lot
+
+from langchain_openai import ChatOpenAI
+from dotenv import load_dotenv
+# you must have open AI API KEY
+load_dotenv()
+
+model = ChatOpenAI(model='gpt-4', temperature=1.5)
+
+result = model.invoke("Write a 5 line poem on cricket")
+
+print(result.content)
