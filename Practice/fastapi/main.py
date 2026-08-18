@@ -1,5 +1,5 @@
 from pickle import load
-from fastapi import FastAPI
+from fastapi import FastAPI, Path
 # import kr rhe h fastapi ko
 from pydantic import json
 import json
@@ -28,3 +28,11 @@ def about():
 def view():
     data = load_data
     return {"message": "Bhai placement kyu nhi ho rhi", "data": data}
+
+@app.get('/patient/{patient_id}')
+def patient_view(patient_id: str):
+    data = load_data
+
+    if patient_id in data:
+        return data[patient_id]
+    return {"error": "Patient not found"}

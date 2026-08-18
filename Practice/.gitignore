@@ -200,3 +200,4 @@ temp/
 
 # ESLint cache
 .eslintcache
+__pycache__/main.cpython-314.pyc
