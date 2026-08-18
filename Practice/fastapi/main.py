@@ -1,5 +1,5 @@
 from pickle import load
-from fastapi import FastAPI, Path
+from fastapi import FastAPI, Path, HTTPException
 # import kr rhe h fastapi ko
 from pydantic import json
 import json
@@ -30,9 +30,10 @@ def view():
     return {"message": "Bhai placement kyu nhi ho rhi", "data": data}
 
 @app.get('/patient/{patient_id}')
-def patient_view(patient_id: str):
+def patient_view(patient_id: str = Path(..., description="The ID of the patient to retrieve", example="P001")):
     data = load_data
 
     if patient_id in data:
         return data[patient_id]
-    return {"error": "Patient not found"}
+    raise HTTPException(status_Code=404, detail='Patient not found')
+
