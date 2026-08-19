@@ -1,39 +1,55 @@
 from pickle import load
-from fastapi import FastAPI, Path, HTTPException
+from fastapi import FastAPI, Path, HTTPException, Query
 # import kr rhe h fastapi ko
 from pydantic import json
 import json
 
 app = FastAPI()
 
-try:
-    with open("patients.json", "r") as f:
-        load_data = json.load(f)
-except FileNotFoundError:
-    load_data = {"error": "patients.json file not found"}
+load_data = {}
 
-# fastAPI ka ek object bnaaya h
-@app.get("/home") #jaise hi user ayega toh api hit hogi, hmne ek route bnaya
-def hello():
-    return {"message": "Hello World"}
+# try:
+#     with open("patients.json", "r") as f:
+#         load_data = json.load(f)
+# except FileNotFoundError:
+#     load_data = {"error": "patients.json file not found"}
 
-@app.get('/about')
-def about():
-    return {"message": "Bhai placement kyu nhi ho rhi"}
+# # fastAPI ka ek object bnaaya h
+# @app.get("/home") #jaise hi user ayega toh api hit hogi, hmne ek route bnaya
+# def hello():
+#     return {"message": "Hello World"}
 
-# the fast API is craxy when you will go to the route '/docs' then you will se that FastAPi has build the docuemntion for you already of both the tw routes that you ahve proceesed and 
-# not only you can also interact with them
+# @app.get('/about')
+# def about():
+#     return {"message": "Bhai placement kyu nhi ho rhi"}
 
-@app.get('/view')
-def view():
-    data = load_data
-    return {"message": "Bhai placement kyu nhi ho rhi", "data": data}
+# # the fast API is craxy when you will go to the route '/docs' then you will se that FastAPi has build the docuemntion for you already of both the tw routes that you ahve proceesed and 
+# # not only you can also interact with them
 
-@app.get('/patient/{patient_id}')
-def patient_view(patient_id: str = Path(..., description="The ID of the patient to retrieve", example="P001")):
-    data = load_data
+# @app.get('/view')
+# def view():
+#     data = load_data
+#     return {"message": "Bhai placement kyu nhi ho rhi", "data": data}
 
-    if patient_id in data:
-        return data[patient_id]
-    raise HTTPException(status_Code=404, detail='Patient not found')
+# @app.get('/patient/{patient_id}')
+# def patient_view(patient_id: str = Path(..., description="The ID of the patient to retrieve", example="P001")):
+#     data = load_data
 
+#     if patient_id in data:
+#         return data[patient_id]
+#     raise HTTPException(status_Code=404, detail='Patient not found')
+
+@app.get('/sort')
+def sort_patients(sort_by: str = Query(..., description="The field to sort patients by", example="name"), order: str
+                    = Query("asc", description="The order of the sorting is (asc or desc)", example="asc")):
+    valid_fields = ["name", "age", "gender"]
+        # agar client ne galti se kuch or parameters bhej diye
+    if sort_by not in valid_fields:
+            raise HTTPException(status_code=400, detail='Invalid sort fields, valid fields are name, age, gender')
+
+    if order not in ["asc", "desc"]:
+            raise HTTPException(status_code=400, detail='Invalid order, valid orders are asc or desc')
+    data = load_data()
+
+    sorted_data = sorted(data.values(), key=lambda x: x[sort_by], reverse=(order == "desc")) 
+    return {"sorted_data": sorted_data}
