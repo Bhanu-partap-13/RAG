@@ -2,14 +2,14 @@ from pydantic import BaseModel
 from typing import List, Dict, Optional, Annotated
 
 class Patient(BaseModel):
-
+# annotated ke sath app data type bhi define krte ho, meta data bhi de skte hoo uske liye hum use krte h field(jahan pe bum title, description, and even examples bhi pass kr skte h)
     name: Annotated[str, Field(max_length=50, title='Name of the patient', description='Give the name of the patient in less than 50 chars', examples=['Nitish', 'Amit'])]
     email: EmailStr
     linkedin_url: AnyUrl
-    age: int = Field(gt=0, lt=120)
-    weight: Annotated[float, Field(gt=0, strict=True)]
-    married: Annotated[bool, Field(default=None, description='Is the patient married or not')]
-    allergies: Annotated[Optional[List[str]], Field(default=None, max_length=5)]
+    age: int = Field(gt=0, lt=120) 
+    weight: Annotated[float, Field(gt=0, strict=True)] # strict main tum ek hi datatype define kr skte hoo
+    married: Annotated[bool, Field(default=None, description='Is the patient married or not')] # hum default value bhi set kr skte h 
+    allergies: Annotated[Optional[List[str]], Field(default=None, max_length=5)] # pehle to
     contact_details: Dict[str, str]
 
 

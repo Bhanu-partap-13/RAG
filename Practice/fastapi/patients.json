@@ -1,12 +1,35 @@
-{"P001": {"name": "John Doe", "age": 30, "gender": "male"} }
-
-{"P002": {"name": "chuchu", "age": 20, "gender": "male", "city": "Los Angeles"}}
-
-{"P003": {"name": "Jane Smith", "age": 25, "gender": "female", "city": "New York"}}
-
-{"P004": {"name": "Alice Johnson", "age": 28, "gender": "female", "city": "Chicago"}}
-
-{"P005": {"name": "Bob Brown", "age": 35, "gender": "male", "city": "Houston"}}
-
-{"P006": {"name": "Charlie Davis", "age": 32, "gender": "male", "city": "Phoenix"}}
-
+{
+    "P001": {
+        "id": "P001",
+        "name": "string",
+        "city": "string",
+        "age": 0,
+        "gender": "male",
+        "height": 1.0,
+        "weight": 1.0,
+        "bmi": 1.0,
+        "verdict": "underweight"
+    },
+    "68733ba7-81fe-4498-8405-352f72d5fd47": {
+        "name": "string",
+        "city": "string",
+        "age": 0,
+        "gender": "male",
+        "height": 1.0,
+        "weight": 1.0,
+        "bmi": 1.0,
+        "verdict": "underweight",
+        "id": "68733ba7-81fe-4498-8405-352f72d5fd47"
+    },
+    "d539c6d6-bddc-47ba-a373-d43f251dd9d4": {
+        "name": "string",
+        "city": "string",
+        "age": 0,
+        "gender": "male",
+        "height": 1.0,
+        "weight": 1.0,
+        "bmi": 1.0,
+        "verdict": "underweight",
+        "id": "d539c6d6-bddc-47ba-a373-d43f251dd9d4"
+    }
+}
