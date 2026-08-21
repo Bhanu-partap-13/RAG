@@ -45,6 +45,11 @@ def save_data(data):
     with open('patients.json', 'w') as file:
         json.dump(data, file, indent=4)
 
+@app.get('/')
+def read_root():
+    return {"message": "Welcome to the Patient API! Go to /docs to see the documentation."}
+
+
 @app.post('/create')
 def create_patient(patient: Patient):
     # Existing data ko load krenge
